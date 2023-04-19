@@ -1,0 +1,24 @@
+class Human {
+    init(name, age, sex) {
+        this.name = name;
+        this.age = age;
+        this.sex = sex;
+    }
+
+    introduce() {
+        print "Hi, my name is " + this.name + ".\n";
+    }
+}
+
+class Teacher < Human {
+    init(name, age, sex, subject) {
+        super.init(name, age, sex);
+        this.subject = subject;
+    }
+
+    introduce() {
+        print "Hi, my name is " + this.name + ". I teach " + this.subject + ".\n";
+    }
+}
+
+teacher = Teacher("Max", 32, "M", "Geography");
