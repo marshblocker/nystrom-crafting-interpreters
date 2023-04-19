@@ -74,11 +74,11 @@ impl Interpreter {
     fn run(&mut self, source: String) -> ExitCode {
         let mut scanner = Scanner::new(source, &mut self.error_reporter);
         let tokens = scanner.scan_tokens();
-        println!("tokens: {:#?}", tokens);
 
         if self.error_reporter.had_error {
             return self.error_reporter.exit_code.unwrap();
         }
+        println!("tokens: {:#?}", tokens);
 
         exitcode::OK
     }

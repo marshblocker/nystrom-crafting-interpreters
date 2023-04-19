@@ -55,37 +55,39 @@ impl<'a> Scanner<'a> {
             '*' => self.add_token(Star),
             '!' => {
                 if self.is_same('=') {
-                    self.add_token(BangEqual)
+                    self.add_token(BangEqual);
                 } else {
-                    self.add_token(Bang)
+                    self.add_token(Bang);
                 }
             }
             '=' => {
                 if self.is_same('=') {
-                    self.add_token(EqualEqual)
+                    self.add_token(EqualEqual);
                 } else {
-                    self.add_token(Equal)
+                    self.add_token(Equal);
                 }
             }
             '>' => {
                 if self.is_same('=') {
-                    self.add_token(GreaterEqual)
+                    self.add_token(GreaterEqual);
                 } else {
-                    self.add_token(Greater)
+                    self.add_token(Greater);
                 }
             }
             '<' => {
                 if self.is_same('=') {
-                    self.add_token(LessEqual)
+                    self.add_token(LessEqual);
                 } else {
-                    self.add_token(Less)
+                    self.add_token(Less);
                 }
             }
             '/' => {
                 if self.is_same('/') {
-                    self.scan_comment()
+                    self.scan_inline_comment();
+                } else if self.is_same('*') {
+                    self.scan_block_comment();
                 } else {
-                    self.add_token(Slash)
+                    self.add_token(Slash);
                 }
             }
             '"' => self.scan_string(),
@@ -94,15 +96,15 @@ impl<'a> Scanner<'a> {
             '\n' => self.line += 1,
             c => {
                 if self.is_alpha(c) {
-                    self.scan_identifier()
+                    self.scan_identifier();
                 } else if self.is_numeric(c) {
-                    self.scan_number()
+                    self.scan_number();
                 } else {
                     self.error_reporter.error(
                         self.line,
                         format!("Unrecognized character: {}", c).as_str(),
                         exitcode::DATAERR,
-                    )
+                    );
                 }
             }
         }
@@ -115,10 +117,32 @@ impl<'a> Scanner<'a> {
         self.tokens.push(token);
     }
 
-    fn scan_comment(&mut self) {
+    fn scan_inline_comment(&mut self) {
         while self.peek() != '\n' && !self.is_at_end() {
             self.advance();
         }
+    }
+
+    fn scan_block_comment(&mut self) {
+        // Consume "*" in the opening "/*" of the block comment.
+        self.advance();
+
+        while !(self.is_same('*') && self.peek_next() == '/') && !self.is_at_end() {
+            if self.is_same('\n') {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            self.error_reporter
+                .error(self.line, "Unterminated block comment.", exitcode::DATAERR);
+            return;
+        }
+
+        // Consume the closing "*/" of the block comment.
+        self.advance();
+        self.advance();
     }
 
     fn scan_string(&mut self) {
