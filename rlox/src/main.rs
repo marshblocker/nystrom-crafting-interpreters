@@ -9,7 +9,11 @@ use std::{
 use error_reporter::ErrorReporter;
 use scanner::Scanner;
 
+use crate::parser::Parser;
+
 pub mod error_reporter;
+pub mod grammar;
+pub mod parser;
 pub mod scanner;
 pub mod token;
 
@@ -19,7 +23,7 @@ fn main() {
 }
 
 fn run() -> ExitCode {
-    let mut interpreter = Interpreter::default();
+    let mut interpreter = Program::default();
 
     let args = args().collect::<Vec<_>>();
     let args_len = args.len();
@@ -36,19 +40,19 @@ fn run() -> ExitCode {
     exitcode::OK
 }
 
-struct Interpreter {
+struct Program {
     error_reporter: ErrorReporter,
 }
 
-impl Default for Interpreter {
+impl Default for Program {
     fn default() -> Self {
-        Interpreter {
+        Program {
             error_reporter: ErrorReporter::new(),
         }
     }
 }
 
-impl Interpreter {
+impl Program {
     fn run_file(&mut self, file_path: String) {
         let source = fs::read_to_string(file_path).unwrap();
         self.run(source);
@@ -79,6 +83,16 @@ impl Interpreter {
             return self.error_reporter.exit_code.unwrap();
         }
         println!("tokens: {:#?}", tokens);
+
+        let mut parser = Parser::new(tokens, &mut self.error_reporter);
+        let ast = if let Some(expr) = parser.parse() {
+            expr
+        } else {
+            eprintln!("Failed to parse code.");
+            return exitcode::DATAERR;
+        };
+
+        println!("ast: {:#?}", ast);
 
         exitcode::OK
     }
