@@ -23,6 +23,8 @@ pub struct Parser<'a> {
     error_reporter: &'a mut ErrorReporter,
 }
 
+// TODO: Rearrange expression types by precedence and associativity.
+// TODO: Use the recursive descent algorithm used in the reference.
 impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<Token>, error_reporter: &'a mut ErrorReporter) -> Parser {
         Parser {
