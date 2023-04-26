@@ -127,7 +127,7 @@ impl<'a> Scanner<'a> {
         // Consume "*" in the opening "/*" of the block comment.
         self.advance();
 
-        while !(self.is_same('*') && self.peek_next() == '/') && !self.is_at_end() {
+        while !(self.is_same('*') && self.peek_next() == '/' || self.is_at_end()) {
             if self.is_same('\n') {
                 self.line += 1;
             }
@@ -242,11 +242,11 @@ impl<'a> Scanner<'a> {
     }
 
     fn is_alpha(&self, c: char) -> bool {
-        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+        c.is_ascii_alphabetic() || c == '_'
     }
 
     fn is_numeric(&self, c: char) -> bool {
-        c >= '0' && c <= '9'
+        c.is_ascii_digit()
     }
 
     fn is_alphanumeric(&self, c: char) -> bool {

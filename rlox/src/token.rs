@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use phf::phf_map;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -81,16 +83,30 @@ impl Token {
     pub fn new(typ: TokenType, lexeme: String, line: i32) -> Token {
         Token { typ, lexeme, line }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use TokenType::*;
         match &self.typ {
             Identifier(literal) => {
-                format!("<TokenType::{:?}, {}, {}>", self.typ, self.lexeme, literal)
+                write!(
+                    f,
+                    "<TokenType::{:?}, {}, {}>",
+                    self.typ, self.lexeme, literal
+                )
             }
-            String(literal) => format!("<TokenType::{:?}, {}, {}>", self.typ, self.lexeme, literal),
-            Number(literal) => format!("<TokenType::{:?}, {}, {}>", self.typ, self.lexeme, literal),
-            _ => format!("<TokenType::{:?}, {}>", self.typ, self.lexeme),
+            String(literal) => write!(
+                f,
+                "<TokenType::{:?}, {}, {}>",
+                self.typ, self.lexeme, literal
+            ),
+            Number(literal) => write!(
+                f,
+                "<TokenType::{:?}, {}, {}>",
+                self.typ, self.lexeme, literal
+            ),
+            _ => write!(f, "<TokenType::{:?}, {}>", self.typ, self.lexeme),
         }
     }
 }

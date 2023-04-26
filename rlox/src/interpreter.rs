@@ -10,10 +10,10 @@ impl Visitor<Literal> for Interpreter {
         use Expr::*;
 
         match expr {
-            LiteralExpr(lexpr) => self.visit_literal_expr(&lexpr),
-            UnaryExpr(uexpr) => self.visit_unary_expr(&uexpr),
-            BinaryExpr(bexpr) => self.visit_binary_expr(&bexpr),
-            GroupingExpr(gexpr) => self.visit_grouping_expr(&gexpr),
+            LiteralExpr(lexpr) => self.visit_literal_expr(lexpr),
+            UnaryExpr(uexpr) => self.visit_unary_expr(uexpr),
+            BinaryExpr(bexpr) => self.visit_binary_expr(bexpr),
+            GroupingExpr(gexpr) => self.visit_grouping_expr(gexpr),
         }
     }
 
@@ -22,14 +22,20 @@ impl Visitor<Literal> for Interpreter {
     }
 
     fn visit_unary_expr(&self, unary_expr: &UnaryExpr) -> Literal {
+        use Literal::*;
+        use UnaryOp::*;
+
         let literal = self.visit_expr(&unary_expr.expr);
         match unary_expr.op {
-            UnaryOp::Not => match literal {
-                Literal::Boolean(b) => Literal::Boolean(!b),
-                _ => panic!(),
-            },
-            UnaryOp::Negate => match literal {
-                Literal::Number(n) => Literal::Number(-n),
+            Not => {
+                if let Boolean(b) = literal {
+                    Boolean(!b)
+                } else {
+                    panic!()
+                }
+            }
+            Negate => match literal {
+                Number(n) => Number(-n),
                 _ => panic!(),
             },
         }
@@ -78,8 +84,6 @@ impl Visitor<Literal> for Interpreter {
     }
 
     fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Literal {
-        let literal = self.visit_expr(&expr.0);
-
-        literal
+        self.visit_expr(&expr.0)
     }
 }

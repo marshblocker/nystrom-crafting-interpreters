@@ -1,6 +1,7 @@
 use exitcode::{self, ExitCode};
 
 use std::{
+    cmp::Ordering,
     env::args,
     fs,
     io::{self, Write},
@@ -30,14 +31,14 @@ fn run() -> ExitCode {
     let args = args().collect::<Vec<_>>();
     let args_len = args.len();
 
-    if args_len > 2 {
-        eprintln!("Usage: rlox [script]");
-        return exitcode::USAGE;
-    } else if args_len == 2 {
-        interpreter.run_file(args[1].clone());
-    } else {
-        interpreter.run_prompt();
-    }
+    match args_len.cmp(&2) {
+        Ordering::Greater => {
+            eprintln!("Usage: rlox [script]");
+            return exitcode::USAGE;
+        }
+        Ordering::Equal => interpreter.run_file(args[1].clone()),
+        Ordering::Less => interpreter.run_prompt(),
+    };
 
     exitcode::OK
 }

@@ -23,3 +23,9 @@ impl ErrorReporter {
         self.exit_code = Some(exit_code);
     }
 }
+
+impl Default for ErrorReporter {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -132,12 +132,12 @@ impl<'a> Parser<'a> {
                     } else {
                         UnaryOp::Negate
                     };
-                    return Some(Expr::UnaryExpr(UnaryExpr {
-                        op: op,
+                    Some(Expr::UnaryExpr(UnaryExpr {
+                        op,
                         expr: Box::new(expr),
-                    }));
+                    }))
                 } else {
-                    return None;
+                    None
                 }
             }
             _ => None,
@@ -174,7 +174,7 @@ impl<'a> Parser<'a> {
 
         Some(Expr::BinaryExpr(BinaryExpr {
             left: Box::new(left),
-            op: op,
+            op,
             right: Box::new(right),
         }))
     }
