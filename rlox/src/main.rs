@@ -9,13 +9,15 @@ use std::{
 use error_reporter::ErrorReporter;
 use scanner::Scanner;
 
-use crate::parser::Parser;
+use crate::{interpreter::Interpreter, parser::Parser, visitor::Visitor};
 
 pub mod error_reporter;
 pub mod grammar;
+pub mod interpreter;
 pub mod parser;
 pub mod scanner;
 pub mod token;
+pub mod visitor;
 
 fn main() {
     let exit_code = run();
@@ -82,17 +84,18 @@ impl Program {
         if self.error_reporter.had_error {
             return self.error_reporter.exit_code.unwrap();
         }
-        println!("tokens: {:#?}", tokens);
 
         let mut parser = Parser::new(tokens, &mut self.error_reporter);
-        let ast = if let Some(expr) = parser.parse() {
+        let expr = if let Some(expr) = parser.parse() {
             expr
         } else {
             eprintln!("Failed to parse code.");
             return exitcode::DATAERR;
         };
 
-        println!("ast: {:#?}", ast);
+        let interpreter = Interpreter {};
+        let literal = interpreter.visit_expr(&expr);
+        println!("{}", literal);
 
         exitcode::OK
     }

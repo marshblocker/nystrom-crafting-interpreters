@@ -12,7 +12,7 @@
 
 use crate::{
     error_reporter::ErrorReporter,
-    grammar::{BinaryOp, Expr, Literal, UnaryOp},
+    grammar::{BinaryExpr, BinaryOp, Expr, GroupingExpr, Literal, LiteralExpr, UnaryExpr, UnaryOp},
     token::{Token, TokenType},
 };
 
@@ -69,23 +69,23 @@ impl<'a> Parser<'a> {
         match token.typ {
             Number(n) => {
                 self.next += 1;
-                Some(Expr::LiteralExpr(Literal::Number(n)))
+                Some(Expr::LiteralExpr(LiteralExpr(Literal::Number(n))))
             }
             String(s) => {
                 self.next += 1;
-                Some(Expr::LiteralExpr(Literal::String(s)))
+                Some(Expr::LiteralExpr(LiteralExpr(Literal::String(s))))
             }
             True => {
                 self.next += 1;
-                Some(Expr::LiteralExpr(Literal::True))
+                Some(Expr::LiteralExpr(LiteralExpr(Literal::Boolean(true))))
             }
             False => {
                 self.next += 1;
-                Some(Expr::LiteralExpr(Literal::False))
+                Some(Expr::LiteralExpr(LiteralExpr(Literal::Boolean(false))))
             }
             Nil => {
                 self.next += 1;
-                Some(Expr::LiteralExpr(Literal::Nil))
+                Some(Expr::LiteralExpr(LiteralExpr(Literal::Nil)))
             }
             _ => None,
         }
@@ -113,7 +113,7 @@ impl<'a> Parser<'a> {
 
         self.next += 1;
 
-        Some(Expr::GroupingExpr(Box::new(expr)))
+        Some(Expr::GroupingExpr(GroupingExpr(Box::new(expr))))
     }
 
     fn parse_unary_expr(&mut self) -> Option<Expr> {
@@ -130,10 +130,10 @@ impl<'a> Parser<'a> {
                     } else {
                         UnaryOp::Negate
                     };
-                    return Some(Expr::UnaryExpr {
+                    return Some(Expr::UnaryExpr(UnaryExpr {
                         op: op,
                         expr: Box::new(expr),
-                    });
+                    }));
                 } else {
                     return None;
                 }
@@ -170,11 +170,11 @@ impl<'a> Parser<'a> {
             None => return None,
         };
 
-        Some(Expr::BinaryExpr {
+        Some(Expr::BinaryExpr(BinaryExpr {
             left: Box::new(left),
             op: op,
             right: Box::new(right),
-        })
+        }))
     }
 
     fn get_next_token(&self) -> Token {
