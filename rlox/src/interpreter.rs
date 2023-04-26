@@ -34,10 +34,13 @@ impl Visitor<Literal> for Interpreter {
                     panic!()
                 }
             }
-            Negate => match literal {
-                Number(n) => Number(-n),
-                _ => panic!(),
-            },
+            Negate => {
+                if let Number(n) = literal {
+                    Number(-n)
+                } else {
+                    panic!()
+                }
+            }
         }
     }
 
