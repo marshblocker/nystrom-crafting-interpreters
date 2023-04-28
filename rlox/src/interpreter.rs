@@ -72,7 +72,7 @@ impl Visitor<Literal> for Interpreter {
             (String(a), String(b), Equal) => Boolean(a.eq(&b)),
             // Not Equal OP
             (Boolean(a), Boolean(b), NotEqual) => Boolean(a != b),
-            (Number(a), Number(b), NotEqual) => Boolean(a == b),
+            (Number(a), Number(b), NotEqual) => Boolean(a != b),
             (String(a), String(b), NotEqual) => Boolean(!a.eq(&b)),
             // Less Than OP
             (Number(a), Number(b), LessThan) => Boolean(a < b),
