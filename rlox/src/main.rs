@@ -86,13 +86,8 @@ impl Program {
             return self.error_reporter.exit_code.unwrap();
         }
 
-        let mut parser = Parser::new(tokens, &mut self.error_reporter);
-        let expr = if let Some(expr) = parser.parse() {
-            expr
-        } else {
-            eprintln!("Failed to parse code.");
-            return exitcode::DATAERR;
-        };
+        let mut parser = Parser::new(tokens);
+        let expr = parser.parse();
 
         let interpreter = Interpreter {};
         let literal = interpreter.visit_expr(&expr);

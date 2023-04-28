@@ -11,27 +11,22 @@
 //                | "+"  | "-"  | "*" | "/" ;
 
 use crate::{
-    error_reporter::ErrorReporter,
-    grammar::{BinaryExpr, BinaryOp, Expr, GroupingExpr, Literal, LiteralExpr, UnaryExpr, UnaryOp},
-    token::{Token, TokenType},
+    grammar::{BinaryExpr, BinaryOp, Expr, Literal, LiteralExpr, UnaryExpr, UnaryOp},
+    token::{
+        Token,
+        TokenType::{self, *},
+    },
 };
 
-pub struct Parser<'a> {
+pub struct Parser {
     tokens: Vec<Token>,
-    next: usize,
-
-    error_reporter: &'a mut ErrorReporter,
+    // Current token to be consumed.
+    curr: usize,
 }
 
-// TODO: Rearrange expression types by precedence and associativity.
-// TODO: Use the recursive descent algorithm used in the reference.
-impl<'a> Parser<'a> {
-    pub fn new(tokens: Vec<Token>, error_reporter: &'a mut ErrorReporter) -> Parser {
-        Parser {
-            tokens,
-            next: 0,
-            error_reporter,
-        }
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Self {
+        Self { tokens, curr: 0 }
     }
 
     pub fn parse(&mut self) -> Option<Expr> {
