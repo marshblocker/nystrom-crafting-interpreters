@@ -55,6 +55,7 @@ impl<'a> Scanner<'a> {
             '*' => self.add_token(Star),
             '!' => {
                 if self.is_same('=') {
+                    self.advance();
                     self.add_token(BangEqual);
                 } else {
                     self.add_token(Bang);
@@ -62,6 +63,7 @@ impl<'a> Scanner<'a> {
             }
             '=' => {
                 if self.is_same('=') {
+                    self.advance();
                     self.add_token(EqualEqual);
                 } else {
                     self.add_token(Equal);
@@ -69,6 +71,7 @@ impl<'a> Scanner<'a> {
             }
             '>' => {
                 if self.is_same('=') {
+                    self.advance();
                     self.add_token(GreaterEqual);
                 } else {
                     self.add_token(Greater);
@@ -76,6 +79,7 @@ impl<'a> Scanner<'a> {
             }
             '<' => {
                 if self.is_same('=') {
+                    self.advance();
                     self.add_token(LessEqual);
                 } else {
                     self.add_token(Less);
@@ -296,8 +300,9 @@ mod tests {
 
     #[test]
     fn scan_fib() {
-        let source = "fun fib(n) {
-            if (n == 1 or n == 0) {
+        let source = "// f(n) = f(n-1) + f(n-2); f(0) = f(1) = 1
+        fun fib(n) {
+            if (n == 0 or n == 1) {
                 return n;
             }
         
@@ -312,202 +317,360 @@ mod tests {
             Token {
                 typ: Fun,
                 lexeme: "fun".to_string(),
-                line: 1,
+                line: 2,
             },
             Token {
-                typ: Identifier("fib".to_string()),
+                typ: Identifier(
+                    "fib".to_string(),
+                ),
                 lexeme: "fib".to_string(),
-                line: 1,
+                line: 2,
             },
             Token {
                 typ: LeftParen,
                 lexeme: "(".to_string(),
-                line: 1,
+                line: 2,
             },
             Token {
-                typ: Identifier("n".to_string()),
+                typ: Identifier(
+                    "n".to_string(),
+                ),
                 lexeme: "n".to_string(),
-                line: 1,
+                line: 2,
             },
             Token {
                 typ: RightParen,
                 lexeme: ")".to_string(),
-                line: 1,
+                line: 2,
             },
             Token {
                 typ: LeftBrace,
                 lexeme: "{".to_string(),
-                line: 1,
+                line: 2,
             },
             Token {
                 typ: If,
                 lexeme: "if".to_string(),
-                line: 2,
+                line: 3,
             },
             Token {
                 typ: LeftParen,
                 lexeme: "(".to_string(),
-                line: 2,
+                line: 3,
             },
             Token {
-                typ: Identifier("n".to_string()),
+                typ: Identifier(
+                    "n".to_string(),
+                ),
                 lexeme: "n".to_string(),
-                line: 2,
+                line: 3,
             },
             Token {
                 typ: EqualEqual,
-                lexeme: "=".to_string(),
-                line: 2,
+                lexeme: "==".to_string(),
+                line: 3,
             },
             Token {
-                typ: Equal,
-                lexeme: "=".to_string(),
-                line: 2,
-            },
-            Token {
-                typ: Number(1.0),
-                lexeme: "1".to_string(),
-                line: 2,
+                typ: Number(
+                    0.0,
+                ),
+                lexeme: "0".to_string(),
+                line: 3,
             },
             Token {
                 typ: Or,
                 lexeme: "or".to_string(),
-                line: 2,
+                line: 3,
             },
             Token {
-                typ: Identifier("n".to_string()),
+                typ: Identifier(
+                    "n".to_string(),
+                ),
                 lexeme: "n".to_string(),
-                line: 2,
+                line: 3,
             },
             Token {
                 typ: EqualEqual,
-                lexeme: "=".to_string(),
-                line: 2,
+                lexeme: "==".to_string(),
+                line: 3,
             },
             Token {
-                typ: Equal,
-                lexeme: "=".to_string(),
-                line: 2,
-            },
-            Token {
-                typ: Number(0.0),
-                lexeme: "0".to_string(),
-                line: 2,
+                typ: Number(
+                    1.0,
+                ),
+                lexeme: "1".to_string(),
+                line: 3,
             },
             Token {
                 typ: RightParen,
                 lexeme: ")".to_string(),
-                line: 2,
+                line: 3,
             },
             Token {
                 typ: LeftBrace,
                 lexeme: "{".to_string(),
-                line: 2,
+                line: 3,
             },
             Token {
                 typ: Return,
                 lexeme: "return".to_string(),
-                line: 3,
+                line: 4,
             },
             Token {
-                typ: Identifier("n".to_string()),
+                typ: Identifier(
+                    "n".to_string(),
+                ),
                 lexeme: "n".to_string(),
-                line: 3,
+                line: 4,
             },
             Token {
                 typ: SemiColon,
                 lexeme: ";".to_string(),
-                line: 3,
+                line: 4,
             },
             Token {
                 typ: RightBrace,
                 lexeme: "}".to_string(),
-                line: 4,
+                line: 5,
             },
             Token {
                 typ: Return,
                 lexeme: "return".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
-                typ: Identifier("fib".to_string()),
+                typ: Identifier(
+                    "fib".to_string(),
+                ),
                 lexeme: "fib".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: LeftParen,
                 lexeme: "(".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
-                typ: Identifier("n".to_string()),
+                typ: Identifier(
+                    "n".to_string(),
+                ),
                 lexeme: "n".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: Minus,
                 lexeme: "-".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
-                typ: Number(1.0),
+                typ: Number(
+                    1.0,
+                ),
                 lexeme: "1".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: RightParen,
                 lexeme: ")".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: Plus,
                 lexeme: "+".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
-                typ: Identifier("fib".to_string()),
+                typ: Identifier(
+                    "fib".to_string(),
+                ),
                 lexeme: "fib".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: LeftParen,
                 lexeme: "(".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
-                typ: Identifier("n".to_string()),
+                typ: Identifier(
+                    "n".to_string(),
+                ),
                 lexeme: "n".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: Minus,
                 lexeme: "-".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
-                typ: Number(2.0),
+                typ: Number(
+                    2.0,
+                ),
                 lexeme: "2".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: RightParen,
                 lexeme: ")".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: SemiColon,
                 lexeme: ";".to_string(),
-                line: 6,
+                line: 7,
             },
             Token {
                 typ: RightBrace,
                 lexeme: "}".to_string(),
-                line: 7,
+                line: 8,
             },
             Token {
                 typ: EOF,
                 lexeme: "".to_string(),
-                line: 7,
+                line: 8,
+            },
+        ];
+
+        tokens
+            .into_iter()
+            .zip(correct)
+            .for_each(|(a, b)| assert_eq!(a, b));
+    }
+
+    #[test]
+    fn scan_comparators() {
+        let source = "1 == 2; 1 != 2; 1 < 2; 1 <= 2; 1 > 2; 1 >= 2;".to_string();
+        let mut error_reporter = ErrorReporter::new();
+
+        let mut scanner = Scanner::new(source, &mut error_reporter);
+        let tokens = scanner.scan_tokens();
+        let correct = vec![
+            // 1 == 2;
+            Token {
+                typ: Number(1.0),
+                lexeme: "1".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: EqualEqual,
+                lexeme: "==".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: Number(2.0),
+                lexeme: "2".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: SemiColon,
+                lexeme: ";".to_string(),
+                line: 1,
+            },
+            // 1 != 2;
+            Token {
+                typ: Number(1.0),
+                lexeme: "1".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: BangEqual,
+                lexeme: "!=".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: Number(2.0),
+                lexeme: "2".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: SemiColon,
+                lexeme: ";".to_string(),
+                line: 1,
+            },
+            // 1 < 2;
+            Token {
+                typ: Number(1.0),
+                lexeme: "1".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: Less,
+                lexeme: "<".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: Number(2.0),
+                lexeme: "2".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: SemiColon,
+                lexeme: ";".to_string(),
+                line: 1,
+            },
+            // 1 <= 2;
+            Token {
+                typ: Number(1.0),
+                lexeme: "1".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: LessEqual,
+                lexeme: "<=".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: Number(2.0),
+                lexeme: "2".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: SemiColon,
+                lexeme: ";".to_string(),
+                line: 1,
+            },
+            // 1 > 2;
+            Token {
+                typ: Number(1.0),
+                lexeme: "1".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: Greater,
+                lexeme: ">".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: Number(2.0),
+                lexeme: "2".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: SemiColon,
+                lexeme: ";".to_string(),
+                line: 1,
+            },
+            // 1 >= 2;
+            Token {
+                typ: Number(1.0),
+                lexeme: "1".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: GreaterEqual,
+                lexeme: ">=".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: Number(2.0),
+                lexeme: "2".to_string(),
+                line: 1,
+            },
+            Token {
+                typ: SemiColon,
+                lexeme: ";".to_string(),
+                line: 1,
             },
         ];
 
