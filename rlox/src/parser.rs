@@ -1,14 +1,13 @@
-// expression     → literal
-//                | unary
-//                | binary
-//                | grouping ;
-
-// literal        → NUMBER | STRING | "true" | "false" | "nil" ;
-// grouping       → "(" expression ")" ;
-// unary          → ( "-" | "!" ) expression ;
-// binary         → expression operator expression ;
-// operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
-//                | "+"  | "-"  | "*" | "/" ;
+// New Grammar:
+// expression     → equality ;
+// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+// term           → factor ( ( "-" | "+" ) factor )* ;
+// factor         → unary ( ( "/" | "*" ) unary )* ;
+// unary          → ( "!" | "-" ) unary
+//                | primary ;
+// primary        → NUMBER | STRING | "true" | "false" | "nil"
+//                | "(" expression ")" ;
 
 use crate::{
     grammar::{BinaryExpr, BinaryOp, Expr, Literal, LiteralExpr, UnaryExpr, UnaryOp},
@@ -29,152 +28,134 @@ impl Parser {
         Self { tokens, curr: 0 }
     }
 
-    pub fn parse(&mut self) -> Option<Expr> {
-        let save = self.next;
-
-        if let Some(literal_expr) = self.parse_literal_expr() {
-            return Some(literal_expr);
-        }
-
-        self.next = save;
-
-        if let Some(grouping_expr) = self.parse_grouping_expr() {
-            return Some(grouping_expr);
-        }
-
-        self.next = save;
-
-        if let Some(unary_expr) = self.parse_unary_expr() {
-            return Some(unary_expr);
-        }
-
-        self.next = save;
-
-        if let Some(binary_expr) = self.parse_binary_expr() {
-            return Some(binary_expr);
-        }
-
-        self.next = save;
-        None
+    pub fn parse(&mut self) -> Expr {
+        self.parse_equality()
     }
 
-    fn parse_literal_expr(&mut self) -> Option<Expr> {
-        use TokenType::*;
+    fn parse_binary_expr<F>(&mut self, parse_next: F, token_types: Vec<TokenType>) -> Expr
+    where
+        F: Fn(&mut Parser) -> Expr,
+    {
+        let mut left = parse_next(self);
 
-        let token = self.get_next_token();
-
-        match token.typ {
-            Number(n) => {
-                self.next += 1;
-                Some(Expr::LiteralExpr(LiteralExpr(Literal::Number(n))))
-            }
-            String(s) => {
-                self.next += 1;
-                Some(Expr::LiteralExpr(LiteralExpr(Literal::String(s))))
-            }
-            True => {
-                self.next += 1;
-                Some(Expr::LiteralExpr(LiteralExpr(Literal::Boolean(true))))
-            }
-            False => {
-                self.next += 1;
-                Some(Expr::LiteralExpr(LiteralExpr(Literal::Boolean(false))))
-            }
-            Nil => {
-                self.next += 1;
-                Some(Expr::LiteralExpr(LiteralExpr(Literal::Nil)))
-            }
-            _ => None,
+        while self.match_type(&token_types) {
+            let op = match &self.previous().typ {
+                t if token_types.contains(t) => match t {
+                    EqualEqual => BinaryOp::Equal,
+                    BangEqual => BinaryOp::NotEqual,
+                    Less => BinaryOp::LessThan,
+                    LessEqual => BinaryOp::LessThanOrEqual,
+                    Greater => BinaryOp::GreaterThan,
+                    GreaterEqual => BinaryOp::GreaterThanOrEqual,
+                    Minus => BinaryOp::Minus,
+                    Plus => BinaryOp::Plus,
+                    Slash => BinaryOp::Divide,
+                    Star => BinaryOp::Multiply,
+                    _ => panic!(),
+                },
+                _ => panic!(),
+            };
+            let right = parse_next(self);
+            let expr = Expr::BinaryExpr(BinaryExpr {
+                left: Box::new(left),
+                op,
+                right: Box::new(right),
+            });
+            left = expr;
         }
+
+        left
     }
 
-    fn parse_grouping_expr(&mut self) -> Option<Expr> {
-        use TokenType::*;
-
-        let mut token = self.get_next_token();
-        if token.typ != LeftParen {
-            return None;
-        }
-
-        self.next += 1;
-
-        let expr = match self.parse() {
-            Some(expr) => expr,
-            None => return None,
-        };
-
-        token = self.get_next_token();
-        if token.typ != RightParen {
-            return None;
-        }
-
-        self.next += 1;
-
-        Some(Expr::GroupingExpr(GroupingExpr(Box::new(expr))))
+    fn parse_equality(&mut self) -> Expr {
+        self.parse_binary_expr(Self::parse_comparison, vec![EqualEqual, BangEqual])
     }
 
-    fn parse_unary_expr(&mut self) -> Option<Expr> {
-        use TokenType::*;
+    fn parse_comparison(&mut self) -> Expr {
+        self.parse_binary_expr(
+            Self::parse_term,
+            vec![Less, LessEqual, Greater, GreaterEqual],
+        )
+    }
 
-        let token = self.get_next_token();
+    fn parse_term(&mut self) -> Expr {
+        self.parse_binary_expr(Self::parse_factor, vec![Plus, Minus])
+    }
 
-        match token.typ {
-            Bang | Minus => {
-                self.next += 1;
-                if let Some(expr) = self.parse() {
-                    let op = if token.typ == Bang {
-                        UnaryOp::Not
-                    } else {
-                        UnaryOp::Negate
-                    };
-                    Some(Expr::UnaryExpr(UnaryExpr {
-                        op,
-                        expr: Box::new(expr),
-                    }))
-                } else {
-                    None
+    fn parse_factor(&mut self) -> Expr {
+        self.parse_binary_expr(Self::parse_unary, vec![Slash, Star])
+    }
+
+    fn parse_unary(&mut self) -> Expr {
+        if self.match_type(&[Bang, Minus]) {
+            let op = match self.previous().typ {
+                Bang => UnaryOp::Not,
+                Minus => UnaryOp::Negate,
+                _ => panic!(),
+            };
+            let expr = self.parse_unary();
+            return Expr::UnaryExpr(UnaryExpr {
+                op,
+                expr: Box::new(expr),
+            });
+        }
+
+        self.parse_primary()
+    }
+
+    fn parse_primary(&mut self) -> Expr {
+        let token = self.advance();
+        match &token.typ {
+            Number(n) => Expr::LiteralExpr(LiteralExpr(Literal::Number(*n))),
+            String(s) => Expr::LiteralExpr(LiteralExpr(Literal::String(s.clone()))),
+            True => Expr::LiteralExpr(LiteralExpr(Literal::Boolean(true))),
+            False => Expr::LiteralExpr(LiteralExpr(Literal::Boolean(false))),
+            Nil => Expr::LiteralExpr(LiteralExpr(Literal::Nil)),
+            LeftParen => {
+                let expr = self.parse();
+                if self.peek().typ != RightParen {
+                    panic!();
                 }
+
+                // Consume ")"
+                self.advance();
+
+                expr
             }
-            _ => None,
+            _ => panic!(),
         }
     }
 
-    fn parse_binary_expr(&mut self) -> Option<Expr> {
-        let left = match self.parse() {
-            Some(expr) => expr,
-            None => return None,
-        };
-
-        let token = self.get_next_token();
-        let op = match token.typ {
-            TokenType::EqualEqual => BinaryOp::Equal,
-            TokenType::BangEqual => BinaryOp::NotEqual,
-            TokenType::Less => BinaryOp::LessThan,
-            TokenType::LessEqual => BinaryOp::LessThanOrEqual,
-            TokenType::Greater => BinaryOp::GreaterThan,
-            TokenType::GreaterEqual => BinaryOp::GreaterThanOrEqual,
-            TokenType::Plus => BinaryOp::Plus,
-            TokenType::Minus => BinaryOp::Minus,
-            TokenType::Star => BinaryOp::Multiply,
-            TokenType::Slash => BinaryOp::Divide,
-            _ => return None,
-        };
-
-        self.next += 1;
-
-        let right = match self.parse() {
-            Some(expr) => expr,
-            None => return None,
-        };
-
-        Some(Expr::BinaryExpr(BinaryExpr {
-            left: Box::new(left),
-            op,
-            right: Box::new(right),
-        }))
+    fn peek(&self) -> &Token {
+        &self.tokens[self.curr]
     }
 
-    fn get_next_token(&self) -> Token {
-        self.tokens[self.next].to_owned()
+    fn match_type(&mut self, token_types: &[TokenType]) -> bool {
+        for typ in token_types {
+            if self.check(typ) {
+                self.advance();
+                return true
+            }
+        }
+
+        false
+    }
+
+    fn advance(&mut self) -> &Token {
+        if !self.is_at_end() { self.curr += 1; }
+        self.previous()
+    }
+
+    fn check(&self, typ: &TokenType) -> bool {
+        if self.is_at_end() { return false; }
+        self.peek().typ == *typ
+    }
+
+    fn previous(&self) -> &Token {
+        &self.tokens[self.curr-1]
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.peek().typ == TokenType::EOF
     }
 }
