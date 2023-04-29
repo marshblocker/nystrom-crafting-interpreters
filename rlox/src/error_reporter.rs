@@ -32,6 +32,10 @@ impl ErrorReporter {
         }
     }
 
+    pub fn runtime_error(&mut self, line: i32, message: &str, exit_code: ExitCode) {
+        self.report(line, "", message, exit_code);
+    }
+
     fn report(&mut self, line: i32, _where: &str, message: &str, exit_code: ExitCode) {
         println!("[line {}] Error{}: {}", line, _where, message);
         self.had_error = true;
@@ -43,4 +47,10 @@ impl Default for ErrorReporter {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub struct RuntimeError {
+    pub line: i32,
+    pub message: String,
+    pub exit_code: ExitCode
 }

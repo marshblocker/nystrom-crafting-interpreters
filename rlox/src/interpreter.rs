@@ -1,12 +1,14 @@
 use crate::{
-    grammar::{BinaryExpr, BinaryOp, Expr, GroupingExpr, Literal, LiteralExpr, UnaryExpr, UnaryOp},
+    error_reporter::RuntimeError,
+    grammar::{BinaryExpr, Expr, GroupingExpr, Literal, LiteralExpr, UnaryExpr},
+    token::TokenType,
     visitor::Visitor,
 };
 
 pub struct Interpreter;
 
-impl Visitor<Literal> for Interpreter {
-    fn visit_expr(&self, expr: &Expr) -> Literal {
+impl Visitor<Result<Literal, RuntimeError>> for Interpreter {
+    fn visit_expr(&self, expr: &Expr) -> Result<Literal, RuntimeError> {
         use Expr::*;
 
         match expr {
@@ -17,76 +19,112 @@ impl Visitor<Literal> for Interpreter {
         }
     }
 
-    fn visit_literal_expr(&self, expr: &LiteralExpr) -> Literal {
-        expr.0.clone()
+    fn visit_literal_expr(&self, expr: &LiteralExpr) -> Result<Literal, RuntimeError> {
+        let literal = match &expr.0.typ {
+            TokenType::String(s) => Literal::String(s.clone()),
+            TokenType::Number(n) => Literal::Number(*n),
+            TokenType::True => Literal::Boolean(true),
+            TokenType::False => Literal::Boolean(false),
+            TokenType::Nil => Literal::Nil,
+            _ => unreachable!(),
+        };
+
+        Ok(literal)
     }
 
-    fn visit_unary_expr(&self, unary_expr: &UnaryExpr) -> Literal {
+    fn visit_unary_expr(&self, unary_expr: &UnaryExpr) -> Result<Literal, RuntimeError> {
         use Literal::*;
-        use UnaryOp::*;
 
-        let literal = self.visit_expr(&unary_expr.expr);
-        match unary_expr.op {
-            Not => {
-                if let Boolean(b) = literal {
-                    Boolean(!b)
-                } else {
-                    panic!()
+        let literal = self.visit_expr(&unary_expr.expr)?;
+        let literal = match unary_expr.op.typ {
+            TokenType::Bang => match literal {
+                Boolean(b) => Boolean(!b),
+                a => {
+                    let message = format!(
+                        "Cannot perform '{:?}' on operand '{:?}'",
+                        unary_expr.op.typ, a
+                    );
+                    return Err(RuntimeError {
+                        line: unary_expr.op.line,
+                        message,
+                        exit_code: exitcode::DATAERR,
+                    });
                 }
-            }
-            Negate => {
-                if let Number(n) = literal {
-                    Number(-n)
-                } else {
-                    panic!()
+            },
+            TokenType::Minus => match literal {
+                Number(n) => Number(-n),
+                a => {
+                    let message = format!(
+                        "Cannot perform '{:?}' on operand '{:?}'",
+                        unary_expr.op.typ, a
+                    );
+                    return Err(RuntimeError {
+                        line: unary_expr.op.line,
+                        message,
+                        exit_code: exitcode::DATAERR,
+                    });
                 }
-            }
-        }
+            },
+            _ => unreachable!(),
+        };
+
+        Ok(literal)
     }
 
-    fn visit_binary_expr(&self, expr: &BinaryExpr) -> Literal {
-        use BinaryOp::*;
+    fn visit_binary_expr(&self, expr: &BinaryExpr) -> Result<Literal, RuntimeError> {
         use Literal::*;
 
-        let left = self.visit_expr(&expr.left);
-        let right = self.visit_expr(&expr.right);
+        let left = self.visit_expr(&expr.left)?;
+        let right = self.visit_expr(&expr.right)?;
         let op = &expr.op;
 
-        match (left, right, op) {
+        let literal = match (left, right, &op.typ) {
             // Plus OP
-            (Number(a), Number(b), Plus) => Number(a + b),
-            (String(a), String(b), Plus) => {
+            (Number(a), Number(b), TokenType::Plus) => Number(a + b),
+            (String(a), String(b), TokenType::Plus) => {
                 let mut a = a;
                 a.push_str(&b);
                 String(a)
             }
             // Minus OP
-            (Number(a), Number(b), Minus) => Number(a - b),
+            (Number(a), Number(b), TokenType::Minus) => Number(a - b),
             // Multiply OP
-            (Number(a), Number(b), Multiply) => Number(a * b),
+            (Number(a), Number(b), TokenType::Star) => Number(a * b),
             // Divide OP
-            (Number(a), Number(b), Divide) => Number(a / b),
+            (Number(a), Number(b), TokenType::Slash) => Number(a / b),
             // Equal OP
-            (Boolean(a), Boolean(b), Equal) => Boolean(a == b),
-            (Number(a), Number(b), Equal) => Boolean(a == b),
-            (String(a), String(b), Equal) => Boolean(a.eq(&b)),
+            (Boolean(a), Boolean(b), TokenType::EqualEqual) => Boolean(a == b),
+            (Number(a), Number(b), TokenType::EqualEqual) => Boolean(a == b),
+            (String(a), String(b), TokenType::EqualEqual) => Boolean(a.eq(&b)),
             // Not Equal OP
-            (Boolean(a), Boolean(b), NotEqual) => Boolean(a != b),
-            (Number(a), Number(b), NotEqual) => Boolean(a != b),
-            (String(a), String(b), NotEqual) => Boolean(!a.eq(&b)),
+            (Boolean(a), Boolean(b), TokenType::BangEqual) => Boolean(a != b),
+            (Number(a), Number(b), TokenType::BangEqual) => Boolean(a != b),
+            (String(a), String(b), TokenType::BangEqual) => Boolean(!a.eq(&b)),
             // Less Than OP
-            (Number(a), Number(b), LessThan) => Boolean(a < b),
+            (Number(a), Number(b), TokenType::Less) => Boolean(a < b),
             // Less Than Or Equal OP
-            (Number(a), Number(b), LessThanOrEqual) => Boolean(a <= b),
+            (Number(a), Number(b), TokenType::LessEqual) => Boolean(a <= b),
             // Greater Than OP
-            (Number(a), Number(b), GreaterThan) => Boolean(a > b),
+            (Number(a), Number(b), TokenType::Greater) => Boolean(a > b),
             // Greater Than Or Equal OP
-            (Number(a), Number(b), GreaterThanOrEqual) => Boolean(a >= b),
-            _ => panic!(),
-        }
+            (Number(a), Number(b), TokenType::GreaterEqual) => Boolean(a >= b),
+            (a, b, op) => {
+                let message = format!(
+                    "Cannot perform '{:?}' on operands '{:?}' and '{:?}'",
+                    op, a, b
+                );
+                return Err(RuntimeError {
+                    line: expr.op.line,
+                    message,
+                    exit_code: exitcode::DATAERR,
+                });
+            }
+        };
+
+        Ok(literal)
     }
 
-    fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Literal {
+    fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<Literal, RuntimeError> {
         self.visit_expr(&expr.0)
     }
 }

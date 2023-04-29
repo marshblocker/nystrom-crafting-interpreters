@@ -89,11 +89,19 @@ impl Program {
         let mut parser = Parser::new(tokens, &mut self.error_reporter);
         let expr = match parser.parse() {
             Some(e) => e,
-            None => return self.error_reporter.exit_code.unwrap()
+            None => return self.error_reporter.exit_code.unwrap(),
         };
 
-        let interpreter = Interpreter {};
-        let literal = interpreter.visit_expr(&expr);
+        let interpreter = Interpreter;
+        let literal = match interpreter.visit_expr(&expr) {
+            Ok(l) => l,
+            Err(e) => {
+                self.error_reporter
+                    .runtime_error(e.line, &e.message, e.exit_code);
+                return self.error_reporter.exit_code.unwrap();
+            }
+        };
+
         println!("{}", literal);
 
         exitcode::OK

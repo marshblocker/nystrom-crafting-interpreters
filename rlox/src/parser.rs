@@ -11,7 +11,7 @@
 
 use crate::{
     error_reporter::ErrorReporter,
-    grammar::{BinaryExpr, BinaryOp, Expr, Literal, LiteralExpr, UnaryExpr, UnaryOp},
+    grammar::{BinaryExpr, Expr, LiteralExpr, UnaryExpr},
     token::{
         Token,
         TokenType::{self, *},
@@ -51,16 +51,8 @@ impl<'a> Parser<'a> {
         while self.match_type(&token_types) {
             let op = match &self.previous().typ {
                 t if token_types.contains(t) => match t {
-                    EqualEqual => BinaryOp::Equal,
-                    BangEqual => BinaryOp::NotEqual,
-                    Less => BinaryOp::LessThan,
-                    LessEqual => BinaryOp::LessThanOrEqual,
-                    Greater => BinaryOp::GreaterThan,
-                    GreaterEqual => BinaryOp::GreaterThanOrEqual,
-                    Minus => BinaryOp::Minus,
-                    Plus => BinaryOp::Plus,
-                    Slash => BinaryOp::Divide,
-                    Star => BinaryOp::Multiply,
+                    EqualEqual | BangEqual | Less | LessEqual | Greater | GreaterEqual | Minus
+                    | Plus | Slash | Star => self.previous().clone(),
                     _ => {
                         self.error(self.peek().clone(), "Expected a binary operator.");
                         return None;
@@ -105,8 +97,7 @@ impl<'a> Parser<'a> {
     fn parse_unary(&mut self) -> Option<Expr> {
         if self.match_type(&[Bang, Minus]) {
             let op = match self.previous().typ {
-                Bang => UnaryOp::Not,
-                Minus => UnaryOp::Negate,
+                Bang | Minus => self.previous().clone(),
                 _ => unreachable!(),
             };
             let expr = match self.parse_unary() {
@@ -129,11 +120,9 @@ impl<'a> Parser<'a> {
         }
         let token = self.advance();
         match &token.typ {
-            Number(n) => Some(Expr::LiteralExpr(LiteralExpr(Literal::Number(*n)))),
-            String(s) => Some(Expr::LiteralExpr(LiteralExpr(Literal::String(s.clone())))),
-            True => Some(Expr::LiteralExpr(LiteralExpr(Literal::Boolean(true)))),
-            False => Some(Expr::LiteralExpr(LiteralExpr(Literal::Boolean(false)))),
-            Nil => Some(Expr::LiteralExpr(LiteralExpr(Literal::Nil))),
+            Number(_) | String(_) | True | False | Nil => {
+                Some(Expr::LiteralExpr(LiteralExpr(token.clone())))
+            }
             LeftParen => {
                 let expr = match self.parse() {
                     Some(e) => e,
@@ -153,7 +142,7 @@ impl<'a> Parser<'a> {
                 Some(expr)
             }
             _ => {
-                self.error(self.peek().clone(), "Expected a literal or '('.");
+                self.error(self.previous().clone(), "Expected a literal or '('.");
                 None
             }
         }

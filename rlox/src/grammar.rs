@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::token::Token;
+
 #[derive(PartialEq, Debug)]
 pub enum Expr {
     LiteralExpr(LiteralExpr),
@@ -9,17 +11,17 @@ pub enum Expr {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct LiteralExpr(pub Literal);
+pub struct LiteralExpr(pub Token);
 
 #[derive(PartialEq, Debug)]
 pub struct UnaryExpr {
-    pub op: UnaryOp,
+    pub op: Token,
     pub expr: Box<Expr>,
 }
 #[derive(PartialEq, Debug)]
 pub struct BinaryExpr {
     pub left: Box<Expr>,
-    pub op: BinaryOp,
+    pub op: Token,
     pub right: Box<Expr>,
 }
 #[derive(PartialEq, Debug)]
@@ -42,24 +44,4 @@ impl Display for Literal {
             Self::Nil => write!(f, "nil"),
         }
     }
-}
-
-#[derive(PartialEq, Debug)]
-pub enum UnaryOp {
-    Negate,
-    Not,
-}
-
-#[derive(PartialEq, Debug)]
-pub enum BinaryOp {
-    Equal,
-    NotEqual,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
 }
